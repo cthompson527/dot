@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use chrono::Utc;
 
 mod git;
 
@@ -23,7 +24,11 @@ enum Action {
     Push {
         /// Branch to commit and push to
         #[arg(default_value = "main")]
-        branch: String
+        branch: String,
+
+        /// Commit message (default is current date)
+        #[arg(default_value = Utc::now().format("%Y-%m-%d %H:%M:%S").to_string())]
+        message: String,
     },
 
     /// Pull the changes from the repo and merge into current branch
@@ -39,6 +44,10 @@ fn main() {
 
     match &cli.action {
         Action::Init { url } => {
+            println!("Pulling from {}", url);
+            git::gclone(url.to_string());
+        },
+        Action::Push { url } => {
             println!("Pulling from {}", url);
             git::gclone(url.to_string());
 
