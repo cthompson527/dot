@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use chrono::prelude::*;
 
 mod git;
 
@@ -50,10 +51,11 @@ fn main() {
         },
         Action::Push { branch, message } => {
             println!("Pushing to {}", branch);
-            match message {
-                Some(m) => println!("Commiting with message: {}", m),
-                None => println!("Committing with message: {}", "date"),
-            }
+            let msg = match message {
+                Some(m) => m.to_owned(),
+                None => format!("{}", Utc::now().format("%Y-%m-%d %H:%M:%S")),
+            };
+            git::gpush(branch.to_string(), msg);
         },
         Action::Pull { branch } => {
             println!("Pulling from {}", branch);
