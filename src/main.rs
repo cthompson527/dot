@@ -23,7 +23,11 @@ enum Action {
     Push {
         /// Branch to commit and push to
         #[arg(default_value = "main")]
-        branch: String
+        branch: String,
+
+        /// Commit message
+        #[arg(short, long)]
+        message: Option<String>,
     },
 
     /// Pull the changes from the repo and merge into current branch
@@ -36,6 +40,7 @@ enum Action {
 
 fn main() {
     let cli = Args::parse();
+    println!("{:?}", cli);
 
     match &cli.action {
         Action::Init { url } => {
@@ -43,8 +48,17 @@ fn main() {
             git::gclone(url.to_string());
 
         },
-        _ => todo!(),
+        Action::Push { branch, message } => {
+            println!("Pushing to {}", branch);
+            match message {
+                Some(m) => println!("Commiting with message: {}", m),
+                None => println!("Committing with message: {}", "date"),
+            }
+        },
+        Action::Pull { branch } => {
+            println!("Pulling from {}", branch);
+        },
     }
 
-    println!("{:?}", cli);
+    // println!("{:?}", cli);
 }
