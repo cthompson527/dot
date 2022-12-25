@@ -42,3 +42,8 @@ pub fn gpush(branch: String, message: String) {
     git!(dir = &cdir; "commit", "-m", message);
     git!(dir = cdir; "push", "origin", format!("main:{}", branch));
 }
+
+pub fn gpull(branch: String) {
+    let cdir = dotfiles_dir();
+    git!(dir = cdir; "pull", "origin", format!("{}:main", branch));
+}

@@ -59,6 +59,7 @@ fn main() {
         },
         Action::Pull { branch } => {
             println!("Pulling from {}", branch);
+            git::gpull(branch.to_string());
         },
     }
 
