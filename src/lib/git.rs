@@ -24,7 +24,7 @@ macro_rules! git {
     };
 }
 
-fn dotfiles_dir() -> String {
+pub fn dotfiles_dir() -> String {
     let home = match env::var("HOME") {
         Ok(path) => path,
         Err(_) => "".to_string(),

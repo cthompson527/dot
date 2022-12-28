@@ -33,7 +33,10 @@ pub enum Action {
         /// Branch to pull from
         #[arg(default_value = "main")]
         branch: String
-    }
+    },
+
+    /// Setup the config file symlinks
+    Setup {}
 }
 
 pub fn parse() -> crate::cli::Args {
