@@ -1,6 +1,6 @@
 use crate::git::dotfiles_dir;
-use std::{env, fs, path::PathBuf, str::FromStr};
 use std::os::unix::fs as unixfs;
+use std::{env, fs, path::PathBuf, str::FromStr};
 use walkdir::WalkDir;
 
 fn walk_repo(start: PathBuf) -> Vec<PathBuf> {
@@ -31,7 +31,9 @@ fn resolve_path(path: PathBuf) -> Option<PathBuf> {
 fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
     for path in paths {
         if let Some(sym_path) = resolve_path(path.to_path_buf()) {
-            if sym_path.is_symlink() { continue; }
+            if sym_path.is_symlink() {
+                continue;
+            }
             if let Some(sym_dir) = sym_path.parent() {
                 fs::create_dir_all(sym_dir)?;
             }
@@ -54,8 +56,8 @@ pub fn setup() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{env, io::Error, path::PathBuf, str::FromStr};
     use std::fs::{self, File};
+    use std::{env, io::Error, path::PathBuf, str::FromStr};
     use tempfile::tempdir;
 
     fn create_fake_repo_files(temp: &mut PathBuf) -> Result<(), Error> {

@@ -3,7 +3,7 @@ use dot::{git, path};
 
 mod cli;
 
-fn main() -> std::io::Result<()>{
+fn main() -> std::io::Result<()> {
     let args = cli::parse();
 
     match &args.action {
@@ -11,7 +11,7 @@ fn main() -> std::io::Result<()>{
             println!("Pulling from {}", url);
             git::gclone(url.to_string());
             path::setup()?;
-        },
+        }
         cli::Action::Push { branch, message } => {
             println!("Pushing to {}", branch);
             let msg = match message {
@@ -19,11 +19,11 @@ fn main() -> std::io::Result<()>{
                 None => format!("{}", Utc::now().format("%Y-%m-%d %H:%M:%S")),
             };
             git::gpush(branch.to_string(), msg);
-        },
+        }
         cli::Action::Pull { branch } => {
             println!("Pulling from {}", branch);
             git::gpull(branch.to_string());
-        },
+        }
         cli::Action::Setup {} => {
             path::setup()?;
         }

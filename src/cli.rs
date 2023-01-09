@@ -5,9 +5,9 @@ use clap::{Parser, Subcommand};
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     #[command(subcommand)]
-    pub action: Action
+    pub action: Action,
 }
-    /// Setup the dotfile folder by cloning from the repo
+/// Setup the dotfile folder by cloning from the repo
 
 #[derive(Subcommand, Debug)]
 pub enum Action {
@@ -32,11 +32,11 @@ pub enum Action {
     Pull {
         /// Branch to pull from
         #[arg(default_value = "main")]
-        branch: String
+        branch: String,
     },
 
     /// Setup the config file symlinks
-    Setup {}
+    Setup {},
 }
 
 pub fn parse() -> crate::cli::Args {
