@@ -31,6 +31,7 @@ fn resolve_path(path: PathBuf) -> Option<PathBuf> {
 fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
     for path in paths {
         if let Some(sym_path) = resolve_path(path.to_path_buf()) {
+            if sym_path.is_symlink() { continue; }
             if let Some(sym_dir) = sym_path.parent() {
                 fs::create_dir_all(sym_dir)?;
             }
@@ -147,6 +148,10 @@ mod tests {
 
         env::set_var("HOME", home.display().to_string());
         fs::create_dir(&home)?;
+
+        home.push(".gitconfig");
+        unixfs::symlink(&temp, home.as_path())?;
+        home.pop();
 
         let files = walk_repo(temp)
             .into_iter()
