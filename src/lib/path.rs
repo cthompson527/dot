@@ -160,6 +160,7 @@ mod tests {
         for file in expected_syms {
             assert!(file.is_symlink());
         }
+        temp_dir.close()?;
         Ok(())
     }
 }
