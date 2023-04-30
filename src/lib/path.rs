@@ -13,13 +13,17 @@ fn walk_repo(start: PathBuf) -> Vec<PathBuf> {
         .collect()
 }
 
+fn get_home() -> String {
+    if let Ok(home_var) = env::var("HOME") {
+        home_var
+    } else {
+        "/".to_string()
+    }
+}
+
 fn resolve_path(path: PathBuf) -> Option<PathBuf> {
     if let Ok(file) = path.strip_prefix("HOME") {
-        if let Ok(home_var) = env::var("HOME") {
-            Some(PathBuf::from_str(&home_var).unwrap().join(file))
-        } else {
-            Some(PathBuf::from_str("/").unwrap().join(file))
-        }
+        Some(PathBuf::from_str(&get_home()).unwrap().join(file))
     } else {
         match path.strip_prefix("ROOT") {
             Ok(f) => Some(PathBuf::from_str("/").unwrap().join(f)),
@@ -28,13 +32,25 @@ fn resolve_path(path: PathBuf) -> Option<PathBuf> {
     }
 }
 
+fn backup_old_file(from: PathBuf, to: PathBuf) -> std::io::Result<()> {
+    println!("Moving file {} to a backup location: {}", from.display(), to.display());
+    if let Some(to_dir) = to.parent() {
+        fs::create_dir_all(to_dir)?;
+    }
+    fs::rename(from, to)?;
+    Ok(())
+}
+
 fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
     for path in paths {
         if let Some(sym_path) = resolve_path(path.to_path_buf()) {
             if sym_path.is_symlink() {
                 continue;
             }
-            if let Some(sym_dir) = sym_path.parent() {
+            if sym_path.exists() {
+                let to = PathBuf::from_str(&get_home()).unwrap().join(".dot_bak").join(path.clone());
+                backup_old_file(sym_path.clone(), to)?;
+            } else if let Some(sym_dir) = sym_path.parent() {
                 fs::create_dir_all(sym_dir)?;
             }
             let path = PathBuf::from_str(&dotfiles_dir()).unwrap().join(path);
@@ -57,6 +73,8 @@ pub fn setup() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use std::fs::{self, File};
+    use std::thread;
+    use std::time::Duration;
     use std::{env, io::Error, path::PathBuf, str::FromStr};
     use tempfile::tempdir;
 
@@ -159,6 +177,39 @@ mod tests {
             .into_iter()
             .filter(|f| !f.starts_with("ROOT"));
         create_symlinks(files.collect())?;
+        thread::sleep(Duration::from_millis(10));
+
+        let expected_syms = vec![
+            home.join(".gitconfig"),
+            home.join(".config").join("fish").join("config.fish"),
+        ];
+        for file in expected_syms {
+            assert!(file.is_symlink(), "{} is not a symlink", file.display());
+        }
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_backup_old_config_files_if_a_file_already_exists() -> Result<(), Error> {
+        let temp_dir = tempdir()?;
+        let mut temp = temp_dir.path().to_path_buf();
+        let mut home = temp.clone();
+        create_fake_repo_files(&mut temp.clone())?;
+        temp.push("repo_files");
+        home.push("home");
+
+        env::set_var("HOME", home.display().to_string());
+        fs::create_dir(&home)?;
+
+        home.push(".gitconfig");
+        File::create(home.clone())?;
+        home.pop();
+
+        let files = walk_repo(temp)
+            .into_iter()
+            .filter(|f| !f.starts_with("ROOT"));
+        create_symlinks(files.collect())?;
 
         let expected_syms = vec![
             home.join(".gitconfig"),
@@ -170,4 +221,5 @@ mod tests {
         temp_dir.close()?;
         Ok(())
     }
+
 }
