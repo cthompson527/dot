@@ -32,24 +32,16 @@ fn resolve_path(path: PathBuf) -> Option<PathBuf> {
     }
 }
 
-fn backup_old_file(from: PathBuf, to: PathBuf) -> std::io::Result<()> {
-    println!("Moving file {} to a backup location: {}", from.display(), to.display());
-    if let Some(to_dir) = to.parent() {
-        fs::create_dir_all(to_dir)?;
-    }
-    fs::rename(from, to)?;
-    Ok(())
-}
-
 fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
+    use std::io::{Error, ErrorKind};
+
     for path in paths {
         if let Some(sym_path) = resolve_path(path.to_path_buf()) {
             if sym_path.is_symlink() {
                 continue;
             }
             if sym_path.exists() {
-                let to = PathBuf::from_str(&get_home()).unwrap().join(".dot_bak").join(path.clone());
-                backup_old_file(sym_path.clone(), to)?;
+                return Err(Error::new(ErrorKind::AlreadyExists, format!("{} already exists", sym_path.clone().display())));
             } else if let Some(sym_dir) = sym_path.parent() {
                 fs::create_dir_all(sym_dir)?;
             }
@@ -79,6 +71,8 @@ mod tests {
     use tempfile::tempdir;
 
     fn create_fake_repo_files(temp: &mut PathBuf) -> Result<(), Error> {
+        fs::create_dir(&temp)?;
+
         temp.push("repo_files");
         fs::create_dir(&temp)?;
 
@@ -117,6 +111,7 @@ mod tests {
     fn test_walkdir_walks_through_all_the_files() -> Result<(), Error> {
         let temp_dir = tempdir()?;
         let mut temp = temp_dir.path().to_path_buf();
+        temp.push("walkdir_walks_through_all_the_files");
         create_fake_repo_files(&mut temp.clone())?;
         temp.push("repo_files");
 
@@ -161,6 +156,7 @@ mod tests {
     fn test_create_symlinks_will_create_symlinks_where_required() -> Result<(), Error> {
         let temp_dir = tempdir()?;
         let mut temp = temp_dir.path().to_path_buf();
+        temp.push("create_symlinks_where_required");
         let mut home = temp.clone();
         create_fake_repo_files(&mut temp.clone())?;
         temp.push("repo_files");
@@ -191,9 +187,10 @@ mod tests {
     }
 
     #[test]
-    fn test_backup_old_config_files_if_a_file_already_exists() -> Result<(), Error> {
+    fn test_throws_error_if_a_file_already_exists() -> Result<(), Error> {
         let temp_dir = tempdir()?;
         let mut temp = temp_dir.path().to_path_buf();
+        temp.push("error_if_file_already_exists");
         let mut home = temp.clone();
         create_fake_repo_files(&mut temp.clone())?;
         temp.push("repo_files");
@@ -209,17 +206,18 @@ mod tests {
         let files = walk_repo(temp)
             .into_iter()
             .filter(|f| !f.starts_with("ROOT"));
-        create_symlinks(files.collect())?;
 
-        let expected_syms = vec![
-            home.join(".gitconfig"),
-            home.join(".config").join("fish").join("config.fish"),
-        ];
-        for file in expected_syms {
-            assert!(file.is_symlink());
+        use std::io::{Error, ErrorKind};
+        match create_symlinks(files.collect()) {
+            Ok(()) => Err(Error::new(ErrorKind::Other, "Expected to throw error since .gitconfig should already exist")),
+            Err(e) => {
+                if e.kind() == ErrorKind::AlreadyExists && e.to_string().contains("gitconfig already exists") {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }
         }
-        temp_dir.close()?;
-        Ok(())
     }
 
 }
