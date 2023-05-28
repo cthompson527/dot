@@ -73,7 +73,9 @@ mod tests {
     fn create_fake_repo_files(temp: &mut PathBuf) -> Result<(), Error> {
         fs::create_dir(&temp)?;
 
-        temp.push("repo_files");
+        temp.push("home");
+        fs::create_dir(&temp)?;
+        temp.push("dotfiles");
         fs::create_dir(&temp)?;
 
         // create home configs
@@ -113,7 +115,8 @@ mod tests {
         let mut temp = temp_dir.path().to_path_buf();
         temp.push("walkdir_walks_through_all_the_files");
         create_fake_repo_files(&mut temp.clone())?;
-        temp.push("repo_files");
+        temp.push("home");
+        temp.push("dotfiles");
 
         let mut files = walk_repo(temp)
             .into_iter()
@@ -159,11 +162,11 @@ mod tests {
         temp.push("create_symlinks_where_required");
         let mut home = temp.clone();
         create_fake_repo_files(&mut temp.clone())?;
-        temp.push("repo_files");
+        temp.push("home");
+        temp.push("dotfiles");
         home.push("home");
 
         env::set_var("HOME", home.display().to_string());
-        fs::create_dir(&home)?;
 
         home.push(".gitconfig");
         unixfs::symlink(&temp, home.as_path())?;
@@ -193,11 +196,11 @@ mod tests {
         temp.push("error_if_file_already_exists");
         let mut home = temp.clone();
         create_fake_repo_files(&mut temp.clone())?;
-        temp.push("repo_files");
+        temp.push("home");
+        temp.push("dotfiles");
         home.push("home");
 
         env::set_var("HOME", home.display().to_string());
-        fs::create_dir(&home)?;
 
         home.push(".gitconfig");
         File::create(home.clone())?;
