@@ -38,6 +38,8 @@ touch "HOME/.doom.d/init.el"
 ########  2. Commit as git repo  ###############
 ################################################
 git init
+git config user.email "fake@fakeuser.com"
+git config user.name "Fake User"
 git add .
 git commit -m "Initial fake setup"
 popd
