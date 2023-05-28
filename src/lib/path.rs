@@ -42,8 +42,6 @@ fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
             if sym_path.is_symlink() {
                 let is_correct_path = match sym_path.read_link() {
                     Ok(p) => {
-                        println!("Correct link: {:?}", path);
-                        println!("Linked to: {:?}", p);
                         p == path
                     }
                     Err(_) => false,
