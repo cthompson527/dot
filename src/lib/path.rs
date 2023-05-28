@@ -37,15 +37,34 @@ fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
 
     for path in paths {
         if let Some(sym_path) = resolve_path(path.to_path_buf()) {
+            let path = PathBuf::from_str(&dotfiles_dir()).unwrap().join(path);
+
             if sym_path.is_symlink() {
-                continue;
+                let is_correct_path = match sym_path.read_link() {
+                    Ok(p) => {
+                        println!("Correct link: {:?}", path);
+                        println!("Linked to: {:?}", p);
+                        p == path
+                    }
+                    Err(_) => false,
+                };
+                if !is_correct_path {
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        format!("{} linked to wrong file", sym_path.clone().display()),
+                    ));
+                } else {
+                    continue;
+                }
             }
             if sym_path.exists() {
-                return Err(Error::new(ErrorKind::AlreadyExists, format!("{} already exists", sym_path.clone().display())));
+                return Err(Error::new(
+                    ErrorKind::AlreadyExists,
+                    format!("{} already exists", sym_path.clone().display()),
+                ));
             } else if let Some(sym_dir) = sym_path.parent() {
                 fs::create_dir_all(sym_dir)?;
             }
-            let path = PathBuf::from_str(&dotfiles_dir()).unwrap().join(path);
             println!("Making link {} -> {}", sym_path.display(), path.display());
 
             unixfs::symlink(path.as_path(), sym_path)?;
@@ -67,7 +86,12 @@ mod tests {
     use std::fs::{self, File};
     use std::thread;
     use std::time::Duration;
-    use std::{env, io::Error, path::PathBuf, str::FromStr};
+    use std::{
+        env,
+        io::Error,
+        path::{Path, PathBuf},
+        str::FromStr,
+    };
     use tempfile::tempdir;
 
     fn create_fake_repo_files(temp: &mut PathBuf) -> Result<(), Error> {
@@ -169,7 +193,7 @@ mod tests {
         env::set_var("HOME", home.display().to_string());
 
         home.push(".gitconfig");
-        unixfs::symlink(&temp, home.as_path())?;
+        unixfs::symlink(&temp.join("HOME").join(".gitconfig"), home.as_path())?;
         home.pop();
 
         let files = walk_repo(temp)
@@ -212,9 +236,14 @@ mod tests {
 
         use std::io::{Error, ErrorKind};
         match create_symlinks(files.collect()) {
-            Ok(()) => Err(Error::new(ErrorKind::Other, "Expected to throw error since .gitconfig should already exist")),
+            Ok(()) => Err(Error::new(
+                ErrorKind::Other,
+                "Expected to throw error since .gitconfig should already exist",
+            )),
             Err(e) => {
-                if e.kind() == ErrorKind::AlreadyExists && e.to_string().contains("gitconfig already exists") {
+                if e.kind() == ErrorKind::AlreadyExists
+                    && e.to_string().contains("gitconfig already exists")
+                {
                     Ok(())
                 } else {
                     Err(e)
@@ -223,4 +252,42 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_create_symlinks_will_error_if_current_symlink_is_wrong() -> Result<(), Error> {
+        let temp_dir = tempdir()?;
+        let mut temp = temp_dir.path().to_path_buf();
+        temp.push("error_if_current_symlink_is_wrong");
+        let mut home = temp.clone();
+        create_fake_repo_files(&mut temp.clone())?;
+        temp.push("home");
+        temp.push("dotfiles");
+        home.push("home");
+
+        env::set_var("HOME", home.display().to_string());
+
+        home.push(".gitconfig");
+        unixfs::symlink(Path::new("/fake_location/.gitconfig"), home.as_path())?;
+        home.pop();
+
+        let files = walk_repo(temp)
+            .into_iter()
+            .filter(|f| !f.starts_with("ROOT"));
+
+        use std::io::{Error, ErrorKind};
+        match create_symlinks(files.collect()) {
+            Ok(()) => Err(Error::new(
+                ErrorKind::Other,
+                "Expected to throw error since .gitconfig points to wrong location",
+            )),
+            Err(e) => {
+                if e.kind() == ErrorKind::Other
+                    && e.to_string().contains("gitconfig linked to wrong file")
+                {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
 }
