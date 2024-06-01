@@ -9,7 +9,7 @@ macro_rules! git {
             $(
                 cmd.arg($arg);
             )*
-            cmd.output().unwrap();
+            &cmd.output().unwrap().stdout
         }
     };
     ( dir = $dir:expr ; $( $arg:expr ), * ) => {
@@ -19,7 +19,7 @@ macro_rules! git {
             $(
                 cmd.arg($arg);
             )*
-            cmd.output().unwrap();
+            &cmd.output().unwrap().stdout
         }
     };
 }
@@ -33,19 +33,27 @@ pub fn dotfiles_dir() -> String {
 }
 
 pub fn gclone(url: String) {
-    git!("clone", url, dotfiles_dir());
+    let _ = git!("clone", url, dotfiles_dir());
 }
 
 pub fn gpush(branch: String, message: String) {
     let cdir = dotfiles_dir();
-    git!(dir = &cdir; "add", "-A");
-    git!(dir = &cdir; "commit", "-m", message);
-    git!(dir = cdir; "push", "origin", format!("main:{}", branch));
+    let _ = git!(dir = &cdir; "add", "-A");
+    let _ = git!(dir = &cdir; "commit", "-m", message);
+    let _ = git!(dir = cdir; "push", "origin", format!("main:{}", branch));
+}
+
+pub fn gstatus() {
+    let cdir = dotfiles_dir();
+    print!(
+        "{}",
+        std::str::from_utf8(git!(dir = &cdir; "status")).unwrap()
+    );
 }
 
 pub fn gpull(branch: String) {
     let cdir = dotfiles_dir();
-    git!(dir = cdir; "pull", "origin", format!("{}:main", branch));
+    let _ = git!(dir = cdir; "pull", "origin", format!("{}:main", branch));
 }
 
 #[cfg(test)]

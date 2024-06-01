@@ -40,7 +40,7 @@ and Dot will take care of the rest!
 
 ## Todo
 
-- [ ] `dot status` should show the git status of the dotfiles dir
+- [x] `dot status` should show the git status of the dotfiles dir
 - [ ] `dot show` should show the path of the dotfiles dir
 - [x] `dot add` should add a move a file to the dotfiles dir and symlink the file
 - [ ] Run clippy to lint the project and fix issues

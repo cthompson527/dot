@@ -30,6 +30,9 @@ fn main() -> std::io::Result<()> {
         cli::Action::Setup {} => {
             path::setup()?;
         }
+        cli::Action::Status {} => {
+            git::gstatus();
+        }
     };
     Ok(())
 }

@@ -43,6 +43,9 @@ pub enum Action {
 
     /// Setup the config file symlinks
     Setup {},
+
+    /// Call git status
+    Status {},
 }
 
 pub fn parse() -> crate::cli::Args {
