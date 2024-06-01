@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 pub fn add_file(file: &str) -> std::io::Result<()> {
     use std::io::{Error, ErrorKind};
 
-    let path = PathBuf::from_str(&file).unwrap();
+    let path = PathBuf::from_str(file).unwrap();
     if !path.is_absolute() {
         return Err(Error::new(
             ErrorKind::Other,
@@ -22,8 +22,8 @@ pub fn add_file(file: &str) -> std::io::Result<()> {
             .join(path.strip_prefix("/").unwrap()),
     };
 
-    fs::create_dir_all(&symlink_target.parent().unwrap())?;
-    fs::rename(&PathBuf::from_str(file).unwrap(), &symlink_target)?;
+    fs::create_dir_all(symlink_target.parent().unwrap())?;
+    fs::rename(PathBuf::from_str(file).unwrap(), &symlink_target)?;
     unixfs::symlink(symlink_target, file)?;
     Ok(())
 }
