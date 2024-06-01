@@ -1,7 +1,32 @@
 use crate::git::dotfiles_dir;
 use std::os::unix::fs as unixfs;
+use std::path::Path;
 use std::{env, fs, path::PathBuf, str::FromStr};
 use walkdir::WalkDir;
+
+pub fn add_file(file: &str) -> std::io::Result<()> {
+    use std::io::{Error, ErrorKind};
+
+    let path = PathBuf::from_str(&file).unwrap();
+    if !path.is_absolute() {
+        return Err(Error::new(
+            ErrorKind::Other,
+            format!("{} is not an absolute path", file),
+        ));
+    }
+    let home = get_home();
+    let symlink_target = match path.strip_prefix(home) {
+        Ok(suffix) => Path::new(&dotfiles_dir()).join("HOME").join(suffix),
+        Err(_) => Path::new(&dotfiles_dir())
+            .join("ROOT")
+            .join(path.strip_prefix("/").unwrap()),
+    };
+
+    fs::create_dir_all(&symlink_target.parent().unwrap())?;
+    fs::rename(&PathBuf::from_str(file).unwrap(), &symlink_target)?;
+    unixfs::symlink(symlink_target, file)?;
+    Ok(())
+}
 
 fn walk_repo(start: PathBuf) -> Vec<PathBuf> {
     WalkDir::new(&start)
@@ -41,9 +66,7 @@ fn create_symlinks(paths: Vec<PathBuf>) -> std::io::Result<()> {
 
             if sym_path.is_symlink() {
                 let is_correct_path = match sym_path.read_link() {
-                    Ok(p) => {
-                        p == path
-                    }
+                    Ok(p) => p == path,
                     Err(_) => false,
                 };
                 if !is_correct_path {
@@ -164,15 +187,24 @@ mod tests {
     fn test_resolve_path_will_resolve_home_and_root_in_paths() {
         env::set_var("HOME", "/home/apollo");
 
-        let Some(got) = resolve_path(PathBuf::from_str("HOME/.config/alacritty/alacritty.yml").unwrap()) else { panic!() };
+        let Some(got) =
+            resolve_path(PathBuf::from_str("HOME/.config/alacritty/alacritty.yml").unwrap())
+        else {
+            panic!()
+        };
         let expect = PathBuf::from_str("/home/apollo/.config/alacritty/alacritty.yml").unwrap();
         assert_eq!(expect, got);
 
-        let Some(got) = resolve_path(PathBuf::from_str("HOME/.gitconfig").unwrap()) else { panic!() };
+        let Some(got) = resolve_path(PathBuf::from_str("HOME/.gitconfig").unwrap()) else {
+            panic!()
+        };
         let expect = PathBuf::from_str("/home/apollo/.gitconfig").unwrap();
         assert_eq!(expect, got);
 
-        let Some(got) = resolve_path(PathBuf::from_str("ROOT/var/etc/conf/httpd.conf").unwrap()) else { panic!() };
+        let Some(got) = resolve_path(PathBuf::from_str("ROOT/var/etc/conf/httpd.conf").unwrap())
+        else {
+            panic!()
+        };
         let expect = PathBuf::from_str("/var/etc/conf/httpd.conf").unwrap();
         assert_eq!(expect, got);
     }
@@ -286,6 +318,69 @@ mod tests {
                     Err(e)
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_add_file_will_error_if_path_is_not_absolute() -> Result<(), Error> {
+        use std::io::ErrorKind;
+        let file = String::from("test.lua");
+        match add_file(&file) {
+            Ok(()) => Err(Error::new(ErrorKind::Other, "should be an error")),
+            Err(e) => {
+                if e.kind() == ErrorKind::Other
+                    && e.to_string().contains("test.lua is not an absolute path")
+                {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_add_file_will_move_into_dotfiles_and_create_symlink() -> Result<(), Error> {
+        let temp_dir = tempdir()?;
+        let mut temp = temp_dir.path().to_path_buf();
+        temp.push("move_into_dotfiles_and_create_link");
+        let mut home = temp.clone();
+        create_fake_repo_files(&mut temp.clone())?;
+        temp.push("home");
+        temp.push("dotfiles");
+        home.push("home");
+
+        env::set_var("HOME", home.display().to_string());
+
+        home.push("testing");
+        fs::create_dir(&home)?;
+        home.push("test.lua");
+        File::create(&home)?;
+        home.pop();
+        home.pop();
+        use std::io::ErrorKind;
+        let file = String::from(format!("{}/testing/test.lua", home.display().to_string()));
+        match add_file(&file) {
+            Ok(()) => {
+                let expected_file = Path::new(&home.display().to_string())
+                    .join("dotfiles")
+                    .join("HOME")
+                    .join("testing")
+                    .join("test.lua");
+                let symlink = Path::new(&file);
+                if symlink.exists()
+                    && symlink.is_symlink()
+                    && symlink.read_link().unwrap() == expected_file
+                {
+                    Ok(())
+                } else {
+                    Err(Error::new(
+                        ErrorKind::Other,
+                        "Files should be a symlink to new file in dotfiles",
+                    ))
+                }
+            }
+            Err(e) => Err(e),
         }
     }
 }

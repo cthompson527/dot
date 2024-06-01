@@ -35,6 +35,12 @@ pub enum Action {
         branch: String,
     },
 
+    /// Adds a file to the dotfiles directory and replaces the file with a symlink
+    Add {
+        /// File to add to the dotfiles directory
+        file: String,
+    },
+
     /// Setup the config file symlinks
     Setup {},
 }

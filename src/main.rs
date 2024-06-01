@@ -24,6 +24,9 @@ fn main() -> std::io::Result<()> {
             println!("Pulling from {}", branch);
             git::gpull(branch.to_string());
         }
+        cli::Action::Add { file } => {
+            path::add_file(file)?;
+        }
         cli::Action::Setup {} => {
             path::setup()?;
         }

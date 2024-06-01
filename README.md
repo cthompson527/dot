@@ -42,5 +42,5 @@ and Dot will take care of the rest!
 
 - [ ] `dot status` should show the git status of the dotfiles dir
 - [ ] `dot show` should show the path of the dotfiles dir
-- [ ] `dot add` should add a move a file to the dotfiles dir and symlink the file
+- [x] `dot add` should add a move a file to the dotfiles dir and symlink the file
 - [ ] Run clippy to lint the project and fix issues
