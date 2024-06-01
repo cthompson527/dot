@@ -3,12 +3,7 @@ image: "rust:latest"
 unit test:
   script:
     - rustc --version && cargo --version  # Print version info for debugging
-    - cargo install junitify
-    - cargo test -- --format=json -Z unstable-options --report-time --test-threads=1 | junitify --out $CI_PROJECT_DIR/tests/
-  artifacts:
-    when: always
-    reports:
-      junit: $CI_PROJECT_DIR/tests/*.xml
+    - cargo test -- --test-threads=1
 
 build and integration test:
   script:
