@@ -46,6 +46,9 @@ pub enum Action {
 
     /// Call git status
     Status {},
+
+    /// Call git log
+    Log {},
 }
 
 pub fn parse() -> crate::cli::Args {

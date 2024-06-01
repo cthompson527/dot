@@ -51,6 +51,17 @@ pub fn gstatus() {
     );
 }
 
+pub fn glog() {
+    let cdir = dotfiles_dir();
+    print!(
+        "{}",
+        std::str::from_utf8(
+            git!(dir = &cdir; "log", "--all", "--decorate", "--oneline", "--graph", "--max-count", "10")
+        )
+        .unwrap(),
+    );
+}
+
 pub fn gpull(branch: String) {
     let cdir = dotfiles_dir();
     let _ = git!(dir = cdir; "pull", "origin", format!("{}:main", branch));

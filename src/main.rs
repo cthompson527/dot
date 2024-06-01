@@ -33,6 +33,9 @@ fn main() -> std::io::Result<()> {
         cli::Action::Status {} => {
             git::gstatus();
         }
+        cli::Action::Log {} => {
+            git::glog();
+        }
     };
     Ok(())
 }
