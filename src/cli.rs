@@ -49,6 +49,9 @@ pub enum Action {
 
     /// Call git log
     Log {},
+
+    /// Print the path of the dotfiles directory
+    Show {},
 }
 
 pub fn parse() -> crate::cli::Args {

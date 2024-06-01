@@ -36,6 +36,9 @@ fn main() -> std::io::Result<()> {
         cli::Action::Log {} => {
             git::glog();
         }
+        cli::Action::Show {} => {
+            println!("{}", git::dotfiles_dir());
+        }
     };
     Ok(())
 }
